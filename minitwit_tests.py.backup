@@ -66,7 +66,8 @@ class MiniTwitTestCase(unittest.TestCase):
     def test_register(self):
         """Make sure registering works"""
         rv = self.register('user1', 'default')
-        assert b'You were successfully registered and can login now' in rv.data
+        assert 'You were successfully registered ' \
+               'and can login now' in rv.data
         rv = self.register('user1', 'default')
         assert b'The username is already taken' in rv.data
         rv = self.register('', 'default')
@@ -111,7 +112,7 @@ class MiniTwitTestCase(unittest.TestCase):
 
         # bar's timeline should just show bar's message
         rv = self.app.get('/')
-        assert b'the message by foo' not in rv.data
+        assert 'the message by foo' not in rv.data
         assert b'the message by bar' in rv.data
 
         # now let's follow foo
@@ -125,17 +126,17 @@ class MiniTwitTestCase(unittest.TestCase):
 
         # but on the user's page we only want the user's message
         rv = self.app.get('/bar')
-        assert b'the message by foo' not in rv.data
+        assert 'the message by foo' not in rv.data
         assert b'the message by bar' in rv.data
         rv = self.app.get('/foo')
         assert b'the message by foo' in rv.data
-        assert b'the message by bar' not in rv.data
+        assert 'the message by bar' not in rv.data
 
         # now unfollow and check if that worked
         rv = self.app.get('/foo/unfollow', follow_redirects=True)
         assert b'You are no longer following &#34;foo&#34;' in rv.data
         rv = self.app.get('/')
-        assert b'the message by foo' not in rv.data
+        assert 'the message by foo' not in rv.data
         assert b'the message by bar' in rv.data
 
 
