@@ -1,84 +1,63 @@
 package main
 
 import (
-	"database/sql"
+	"crypto/md5"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
-
-	_ "github.com/mattn/go-sqlite3"
-)
-
-const (
-	dbPath  = "/tmp/minitwit.db"
-	perPage = 30
+	"strings"
+	"time"
 )
 
 type Message struct {
-	Text     string
-	PubDate  int64
 	Username string
 	Email    string
+	Text     string
+	PubDate  int64
 }
 
-var db *sql.DB
+var messages = []Message{
+	{"alice", "alice@example.com", "Hello world!", time.Now().Unix()},
+}
 
-func main() {
-	var err error
-	db, err = sql.Open("sqlite3", dbPath)
-	if err != nil {
-		log.Fatal(err)
+func gravatar(email string) string {
+	h := md5.Sum([]byte(strings.ToLower(strings.TrimSpace(email))))
+	return fmt.Sprintf("https://www.gravatar.com/avatar/%x?d=identicon&s=48", h)
+}
+
+func datetimeformat(ts int64) string {
+	return time.Unix(ts, 0).Format("2006-01-02 15:04")
+}
+
+func publicTimelineHandler(w http.ResponseWriter, r *http.Request) {
+	funcMap := template.FuncMap{
+		"gravatar":       gravatar,
+		"datetimeformat": datetimeformat,
 	}
 
-	http.HandleFunc("/public", publicTimeline)
+	tmpl := template.Must(template.New("layout.html").
+		Funcs(funcMap).
+		ParseFiles("templates/layout.html", "templates/timeline.html"))
+
+	data := map[string]interface{}{
+		"Messages":    messages,
+		"CurrentUser": map[string]interface{}{"Username": "bob"},
+		"IsPublic":    true,
+		"IsTimeline":  true,
+	}
+
+	tmpl.ExecuteTemplate(w, "layout.html", data)
+}
+
+func main() {
+	// Serve static files
+	fs := http.FileServer(http.Dir("static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	// Handlers
+	http.HandleFunc("/public", publicTimelineHandler)
 
 	log.Println("Listening on http://localhost:5000/public")
 	log.Fatal(http.ListenAndServe(":5000", nil))
-}
-
-func publicTimeline(w http.ResponseWriter, r *http.Request) {
-	rows, err := db.Query(`
-		SELECT message.text, message.pub_date, user.username, user.email
-		FROM message
-		JOIN user ON message.author_id = user.user_id
-		WHERE message.flagged = 0
-		ORDER BY message.pub_date DESC
-		LIMIT ?`, perPage)
-	if err != nil {
-		http.Error(w, "Database error", 500)
-		return
-	}
-	defer rows.Close()
-
-	var messages []Message
-	for rows.Next() {
-		var m Message
-		if err := rows.Scan(&m.Text, &m.PubDate, &m.Username, &m.Email); err != nil {
-			http.Error(w, "Scan error", 500)
-			return
-		}
-		messages = append(messages, m)
-	}
-
-	tmpl := template.Must(template.New("timeline").Parse(`
-		<!doctype html>
-		<html>
-		<head><title>Public Timeline</title></head>
-		<body>
-			<h1>Public Timeline</h1>
-			{{ range . }}
-				<div>
-					<strong>{{ .Username }}</strong><br>
-					{{ .Text }}<br>
-					<small>{{ .PubDate }}</small>
-				</div>
-				<hr>
-			{{ else }}
-				<p>No messages yet.</p>
-			{{ end }}
-		</body>
-		</html>
-	`))
-
-	tmpl.Execute(w, messages)
 }
