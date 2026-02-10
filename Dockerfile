@@ -1,17 +1,26 @@
-FROM golang:1.24-alpine AS build
-WORKDIR /app
-RUN apk add --no-cache build-base sqlite-dev
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN CGO_ENABLED=1 GOOS=linux go build -o /minitwit .
+# Go + lightweight Linux
+FROM golang:1.24-alpine
 
-FROM alpine:3.20
+# Working directory inside container
 WORKDIR /app
-RUN apk add --no-cache ca-certificates sqlite-libs curl
-COPY --from=build /minitwit /app/minitwit
-COPY templates /app/templates
-COPY static /app/static
-COPY schema.sql /app/schema.sql
+
+# Required to build with SQLite (CGO)
+RUN apk add --no-cache build-base sqlite-dev
+
+# Go dependency files
+COPY go.mod go.sum ./
+
+# Download the copied dependencies
+RUN go mod download
+
+# Application source code
+COPY . .
+
+# Build the Go binary
+RUN CGO_ENABLED=1 go build -o myserver .
+
+# Application listens on port 5000
 EXPOSE 5000
-CMD ["/app/minitwit"]
+
+# Start the server
+CMD ["./myserver"]
