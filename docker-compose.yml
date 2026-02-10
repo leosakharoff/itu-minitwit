@@ -1,0 +1,18 @@
+services:
+  webserver:
+    build: .
+    image: your_id/minitwit
+    ports:
+      - "5001:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  clidownload:
+    image: appropriate/curl
+    depends_on:
+      webserver:
+        condition: service_healthy
+    entrypoint: sh -c "curl -s http://webserver:5000/ | head"
