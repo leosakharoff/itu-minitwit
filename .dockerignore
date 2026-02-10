@@ -1,0 +1,10 @@
+.git
+.gitignore
+.dockerignore
+Dockerfile
+*.sqlite
+*.db
+minitwit.db
+__pycache__/
+*.pyc
+minitwit
