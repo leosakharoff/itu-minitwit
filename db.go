@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+	"os"
 )
 
 func openDB(path string) (*sql.DB, error) {
@@ -16,25 +17,11 @@ func initDB() {
 		log.Fatal(err)
 	}
 
-	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS user (
-			user_id integer PRIMARY KEY AUTOINCREMENT,
-			username string NOT NULL,
-			email string NOT NULL,
-			pw_hash string NOT NULL
-		);
-		CREATE TABLE IF NOT EXISTS follower (
-			who_id integer,
-			whom_id integer
-		);
-		CREATE TABLE IF NOT EXISTS message (
-			message_id integer PRIMARY KEY AUTOINCREMENT,
-			author_id integer NOT NULL,
-			text string NOT NULL,
-			pub_date integer,
-			flagged integer
-		);
-	`)
+	schema, err := os.ReadFile("schema.sql")
+	if err != nil {
+		log.Fatal("Failed to read schema.sql: ", err)
+	}
+	_, err = db.Exec(string(schema))
 	if err != nil {
 		log.Fatal("Failed to initialize database schema: ", err)
 	}
