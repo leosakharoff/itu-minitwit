@@ -2,12 +2,9 @@
 
 if [ "$1" = "init" ]; then
 
-    if [ -f "/tmp/minitwit.db" ]; then
-        echo "Database already exists."
-        exit 1
-    fi
-    echo "Putting a database to /tmp/minitwit.db..."
-    sqlite3 /tmp/minitwit.db < schema.sql
+    echo "Resetting database at /tmp/minitwit.db..."
+    rm -f /tmp/minitwit.db
+    echo "Done. The app will recreate tables on next start."
 elif [ "$1" = "start" ]; then
     echo "Starting minitwit..."
     nohup go run . > /tmp/out.log 2>&1 &

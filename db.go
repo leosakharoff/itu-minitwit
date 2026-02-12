@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+	"os"
 )
 
 func openDB(path string) (*sql.DB, error) {
@@ -14,6 +15,15 @@ func initDB() {
 	db, err = openDB(DATABASE)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	schema, err := os.ReadFile("schema.sql")
+	if err != nil {
+		log.Fatal("Failed to read schema.sql: ", err)
+	}
+	_, err = db.Exec(string(schema))
+	if err != nil {
+		log.Fatal("Failed to initialize database schema: ", err)
 	}
 }
 
